@@ -1,0 +1,7 @@
+# Ignore checkpoints and logs
+*.pth
+logs/
+__pycache__/
+*.ipynb_checkpoints
+glove/
+data/

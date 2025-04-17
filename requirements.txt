@@ -1,0 +1,9 @@
+torch
+numpy
+spacy
+nltk
+datasets
+tqdm
+tensorboard
+scikit-learn
+senteval @ git+https://github.com/facebookresearch/SentEval.git
