@@ -3,9 +3,10 @@ import torch
 from torch.utils.data import Dataset
 import nltk
 import numpy as np
-from nltk.tokenize import word_tokenize
+from nltk.tokenize import TreebankWordTokenizer
 
 LABEL2ID = {"entailment": 0, "neutral": 1, "contradiction": 2}
+tokenizer = TreebankWordTokenizer()
 
 class SNLIDataset(Dataset):
     def __init__(self, data, vocab=None, max_len=50):
@@ -18,8 +19,8 @@ class SNLIDataset(Dataset):
 
     def __getitem__(self, idx):
         sample = self.data[idx]
-        premise = word_tokenize(sample["premise"].lower())
-        hypothesis = word_tokenize(sample["hypothesis"].lower())
+        premise =tokenizer.tokenize(sample["premise"].lower())
+        hypothesis =tokenizer.tokenize(sample["hypothesis"].lower())
 
         if self.vocab:
             premise_ids = [self.vocab.get(w, self.vocab["<unk>"]) for w in premise]
@@ -45,8 +46,8 @@ def build_vocab(dataset, min_freq=2):
     for sample in dataset:
         if sample["label"] == -1:
             continue
-        prem = word_tokenize(sample["premise"].lower())
-        hypo = word_tokenize(sample["hypothesis"].lower())
+        prem =tokenizer.tokenize(sample["premise"].lower())
+        hypo =tokenizer.tokenize(sample["hypothesis"].lower())
         all_tokens.extend(prem)
         all_tokens.extend(hypo)
 
