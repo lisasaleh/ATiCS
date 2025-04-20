@@ -79,6 +79,7 @@ def train(args):
             logits = model(premise, hypothesis)
             loss = criterion(logits, labels)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5) #add clipping
             optimizer.step()
             total_loss += loss.item()
 
