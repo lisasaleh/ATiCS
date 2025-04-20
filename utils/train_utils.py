@@ -83,15 +83,15 @@ def train(args):
         val_acc = evaluate(model, val_loader, args.device)
         print(f"Epoch {epoch + 1}/{args.epochs}, Train Loss: {avg_loss:.4f}, Val Acc: {val_acc:.4f}, LR:{optimizer.param_groups[0]['lr']:.5f} ")
 
-        # Decay LR if val acc dropped
-        if val_acc < best_val_acc:
-            for g in optimizer.param_groups:
-                g["lr"] /= 5
-        else:
+        # do the LR decay if nessecary
+        if val_acc > best_val_acc:
             best_val_acc = val_acc
             save_path = os.path.join(args.checkpoint_path, args.model_type + ".pt")
             print(f"Saving best model to {save_path}")
             torch.save(model.state_dict(), save_path)
+        elif val_acc < best_val_acc:
+            for g in optimizer.param_groups:
+                g["lr"] /= 5
 
         # Stop if LR < 1e-5
         if optimizer.param_groups[0]["lr"] < 1e-5:
