@@ -1,3 +1,6 @@
+import nltk
+nltk.download("punkt", quiet=True)
+
 from nltk.tokenize import word_tokenize
 import numpy as np
 import torch
