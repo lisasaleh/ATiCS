@@ -24,8 +24,9 @@ class LSTMClassifier(nn.Module):
 
     def encode_sentence(self, x):
         embedded = self.embedding(x)  # (batch, seq, emb_dim)
-        _, (h_n, _) = self.lstm(embedded)  # h_n: (1, batch, hidden)
-        return h_n.squeeze(0)  # → (batch, hidden)
+        embedded = self.embedding(x)  # (batch, seq_len, emb_dim)
+        _, (h_n, _) = self.lstm(embedded)  # h_n: (1, batch, hidden_dim)
+        return h_n[-1]  # safe: (batch, hidden_dim)
 
     def forward(self, premise, hypothesis):
         u = self.encode_sentence(premise)
