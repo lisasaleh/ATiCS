@@ -6,7 +6,7 @@ from utils.train_utils import train
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_type', type=str, default='baseline', choices=['baseline', 'lstm', 'bilstm', 'bilstm_max'])
-    parser.add_argument('--glove_path', type=str, default='glove/glove.6B.300d.txt')
+    parser.add_argument('--glove_path', type=str, default='./glove/glove.6B.300d.txt')
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--lr', type=float, default=0.1)
