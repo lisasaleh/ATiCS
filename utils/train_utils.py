@@ -21,10 +21,10 @@ def evaluate(model, dataloader, device):
     correct, total = 0, 0
 
     with torch.no_grad():
-        for premise, hypothesis, labels in dataloader:
+        for premise, hypothesis, labels, prem_len, hypo_len in dataloader:
             premise, hypothesis, labels = premise.to(device), hypothesis.to(device), labels.to(device)
             
-            outputs = model(premise, hypothesis)
+            outputs = model(premise, prem_len, hypothesis, hypo_len)
             preds = torch.argmax(outputs, dim=1)
             correct += (preds == labels).sum().item()
             total += labels.size(0)
