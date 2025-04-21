@@ -8,7 +8,7 @@ class LSTMClassifier(nn.Module):
         self.embedding = nn.Embedding.from_pretrained(embedding_matrix, freeze=True)
         self.hidden_dim = 512
         self.num_classes = 3
-        self.dropout = nn.Dropout(p=0.3)
+        self.dropout = nn.Dropout(p=0.2)
 
         self.lstm = nn.LSTM(
             input_size=args.embedding_dim,
