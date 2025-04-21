@@ -25,7 +25,7 @@ class BaselineClassifier(nn.Module):
         avg = summed / lengths.clamp(min=1e-9)  # avoid div by 0
         return avg  # (batch_size, emb_dim)
 
-    def forward(self, premise, hypothesis):
+    def forward(self, premise, prem_len, hypothesis, hypo_len):
         u = self.average_embeddings(premise)
         v = self.average_embeddings(hypothesis)
 

@@ -14,6 +14,7 @@ def main():
     parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu')
     parser.add_argument('--checkpoint_path', type=str, default='./checkpoints/')
     parser.add_argument('--embedding_dim', type=int, default=300, help="Dimensionality of GloVe embeddings (e.g., 100 or 300)")
+    parser.add_argument('--lr_decay', type=float, default=0.99, help="Multiply LR by this each epoch")
     parser.add_argument('--use_part_data', action='store_true', help="Use small subset of SNLI for local testing")
     args = parser.parse_args()
 

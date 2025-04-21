@@ -23,16 +23,18 @@ class BiLSTMClassifier(nn.Module):
             nn.Linear(self.hidden_dim, self.num_classes)
         )
 
-    def encode_sentence(self, x):
-        embedded = self.embedding(x)  # (batch, seq_len, emb_dim)
-        _, (h_n, _) = self.bilstm(embedded)  # h_n: (2, batch, hidden)
-        # Split directions
-        forward_final = h_n[0]      # (batch, hidden)
-        backward_final = h_n[1]     # (batch, hidden)
-        return torch.cat([forward_final, backward_final], dim=1)  # (batch, 2*hidden)
+    def encode_sentence(self, x, lengths):
+        embedded = self.embedding(x)
+        packed = nn.utils.rnn.pack_padded_sequence(embedded, lengths.cpu(), batch_first=True, enforce_sorted=False)
+        _, (h_n, _) = self.bilstm(packed)  # h_n: (num_layers * num_directions, batch, hidden_dim)
 
-    def forward(self, premise, hypothesis):
-        u = self.encode_sentence(premise)
-        v = self.encode_sentence(hypothesis)
+        # Concatenate forward and backward final hidden states
+        h_forward = h_n[-2]
+        h_backward = h_n[-1]
+        return torch.cat([h_forward, h_backward], dim=1)  # (batch, 2*hidden)
+    
+    def forward(self, premise, prem_len, hypothesis, hypo_len):
+        u = self.encode_sentence(premise, prem_len)
+        v = self.encode_sentence(hypothesis, hypo_len)
         combined = torch.cat([u, v, torch.abs(u - v), u * v], dim=1)
         return self.mlp(combined)

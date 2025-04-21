@@ -8,6 +8,7 @@ class LSTMClassifier(nn.Module):
         self.embedding = nn.Embedding.from_pretrained(embedding_matrix, freeze=True)
         self.hidden_dim = 512
         self.num_classes = 3
+        self.dropout = nn.Dropout(p=0.3)
 
         self.lstm = nn.LSTM(
             input_size=args.embedding_dim,
@@ -22,15 +23,15 @@ class LSTMClassifier(nn.Module):
             nn.Linear(self.hidden_dim, self.num_classes)
         )
 
-    def encode_sentence(self, x):
+    def encode_sentence(self, x, lengths):
         embedded = self.embedding(x)  # (batch, seq, emb_dim)
-        embedded = self.embedding(x)  # (batch, seq_len, emb_dim)
-        _, (h_n, _) = self.lstm(embedded)  # h_n: (1, batch, hidden_dim)
-        return h_n[-1]  # safe: (batch, hidden_dim)
+        packed = nn.utils.rnn.pack_padded_sequence(embedded, lengths.cpu(), batch_first=True, enforce_sorted=False)
+        _, (h_n, _) = self.lstm(packed)  # h_n: (1, batch, hidden_dim)
+        return self.dropout(h_n[-1])
 
-    def forward(self, premise, hypothesis):
-        u = self.encode_sentence(premise)
-        v = self.encode_sentence(hypothesis)
+    def forward(self, premise, prem_len, hypothesis, hypo_len):
+        u = self.encode_sentence(premise, prem_len)
+        v = self.encode_sentence(hypothesis, hypo_len)
 
         combined = torch.cat([u, v, torch.abs(u - v), u * v], dim=1)
         return self.mlp(combined)

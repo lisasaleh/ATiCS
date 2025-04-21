@@ -25,14 +25,18 @@ class BiLSTMMaxPoolClassifier(nn.Module):
             nn.Linear(self.hidden_dim, self.num_classes)
         )
 
-    def encode_sentence(self, x):
-        embedded = self.embedding(x)  # (batch, seq_len, emb_dim)
-        output, _ = self.bilstm(embedded)  # output: (batch, seq_len, 2 * hidden_dim)
-        pooled, _ = torch.max(output, dim=1)  # max over time → (batch, 2 * hidden)
-        return pooled
+    def encode_sentence(self, x, lengths):
+        embedded = self.embedding(x)
+        packed = nn.utils.rnn.pack_padded_sequence(embedded, lengths.cpu(), batch_first=True, enforce_sorted=False)
+        output, _ = self.bilstm(packed)
+        unpacked, _ = nn.utils.rnn.pad_packed_sequence(output, batch_first=True)
 
-    def forward(self, premise, hypothesis):
-        u = self.encode_sentence(premise)
-        v = self.encode_sentence(hypothesis)
+        # Max pooling over time
+        return torch.max(unpacked, dim=1).values  # (batch, 2*hidden)
+    
+    def forward(self, premise, prem_len, hypothesis, hypo_len):
+        u = self.encode_sentence(premise, prem_len)
+        v = self.encode_sentence(hypothesis, hypo_len)
+
         combined = torch.cat([u, v, torch.abs(u - v), u * v], dim=1)
         return self.mlp(combined)

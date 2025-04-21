@@ -36,8 +36,11 @@ class SNLIDataset(Dataset):
         premise_ids += [self.vocab["<pad>"]] * (self.max_len - len(premise_ids))
         hypothesis_ids += [self.vocab["<pad>"]] * (self.max_len - len(hypothesis_ids))
 
+        premise_len = min(len(premise), self.max_len)
+        hypothesis_len = min(len(hypothesis), self.max_len)
+
         label = sample["label"]
-        return torch.tensor(premise_ids), torch.tensor(hypothesis_ids), torch.tensor(label)
+        return torch.tensor(premise_ids), torch.tensor(hypothesis_ids), torch.tensor(label), premise_len, hypothesis_len
 
 
 def build_vocab(dataset, min_freq=2):

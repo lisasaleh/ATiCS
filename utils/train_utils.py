@@ -74,13 +74,13 @@ def train(args):
         model.train()
         total_loss = 0
 
-        for premise, hypothesis, labels in train_loader:
+        for premise, hypothesis, labels, prem_len, hypo_len in train_loader:
             premise = premise.to(args.device)
             hypothesis = hypothesis.to(args.device)
             labels = labels.to(args.device)
 
             optimizer.zero_grad()
-            logits = model(premise, hypothesis)
+            logits = model(premise, prem_len, hypothesis, hypo_len)
             loss = criterion(logits, labels)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5) #add clipping
@@ -94,16 +94,15 @@ def train(args):
         writer.add_scalar("Accuracy/val", val_acc, epoch)
         writer.add_scalar("LearningRate", optimizer.param_groups[0]['lr'], epoch)
 
-
         # do the LR decay if nessecary
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            save_path = os.path.join(args.checkpoint_path, args.model_type + ".pt")
+            save_path = os.path.join(args.checkpoint_path, f"{args.model_type}_valacc{best_val_acc:.4f}.pt")
             print(f"Saving best model to {save_path}")
             torch.save(model.state_dict(), save_path)
         elif val_acc < best_val_acc:
             for g in optimizer.param_groups:
-                g["lr"] /= 5
+                g["lr"] *= args.lr_decay
 
         # Stop if LR < 1e-5
         if optimizer.param_groups[0]["lr"] < 1e-5:
