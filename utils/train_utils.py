@@ -9,6 +9,8 @@ from torch.utils.data import DataLoader
 import torch.nn as nn
 import torch.optim as optim
 from datasets import load_dataset
+from torch.utils.tensorboard import SummaryWriter
+import datetime
 
 from utils.dataset import SNLIDataset, build_vocab, load_glove_embeddings
 from models import get_model
@@ -64,6 +66,8 @@ def train(args):
 
     # Train loop
     print("Training...")
+    log_dir = os.path.join("runs", f"{args.model_type}_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
+    writer = SummaryWriter(log_dir=log_dir)
     best_val_acc = 0.0
 
     for epoch in range(args.epochs):
@@ -86,6 +90,10 @@ def train(args):
         avg_loss = total_loss / len(train_loader)
         val_acc = evaluate(model, val_loader, args.device)
         print(f"Epoch {epoch + 1}/{args.epochs}, Train Loss: {avg_loss:.4f}, Val Acc: {val_acc:.4f}, LR:{optimizer.param_groups[0]['lr']:.5f} ")
+        writer.add_scalar("Loss/train", avg_loss, epoch)
+        writer.add_scalar("Accuracy/val", val_acc, epoch)
+        writer.add_scalar("LearningRate", optimizer.param_groups[0]['lr'], epoch)
+
 
         # do the LR decay if nessecary
         if val_acc > best_val_acc:
@@ -101,5 +109,6 @@ def train(args):
         if optimizer.param_groups[0]["lr"] < 1e-5:
             print("Early stopping: learning rate below 1e-5.")
             break
-
+    
+    writer.close()
     print("Training finished.")
