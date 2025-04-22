@@ -1,5 +1,6 @@
 import argparse
 import torch
+import pickle
 from torch.utils.data import DataLoader
 from datasets import load_dataset
 
@@ -68,8 +69,9 @@ def main():
     raw_dev = snli["validation"]
     raw_test = snli["test"]
 
-    print("Building vocab...")
-    vocab = build_vocab(raw_dev, min_freq=1)
+    print("Loading vocab...")
+    with open("./checkpoints/vocab.pkl", "rb") as f:
+        vocab = pickle.load(f)
 
     print("Loading GloVe...")
     embedding_matrix = load_glove_embeddings(args.glove_path, vocab, dim=args.embedding_dim)
@@ -83,7 +85,7 @@ def main():
 
     print("Initializing model...")
     model = get_model(args.model_type, embedding_matrix, args).to(args.device)
-    model.load_state_dict(torch.load(args.checkpoint_path, map_location=args.device))
+    model.load_state_dict(torch.load(args.checkpoint_path, map_location=args.device, weights_only=True))
 
     print("Evaluating SNLI dev...")
     dev_acc = evaluate(model, dev_loader, args.device)
