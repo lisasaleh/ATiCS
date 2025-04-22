@@ -86,11 +86,12 @@ def evaluate(model, dataloader, device):
     return correct / total
 
 def count_task_examples(task_path, task_name):
-    data_file = os.path.join(task_path, task_name, 'test.txt')
-    if not os.path.isfile(data_file):
-        return -1  # Fallback
-    with open(data_file, 'r', encoding='utf-8') as f:
-        return sum(1 for line in f if line.strip())
+    for fname in ['test.txt', 'dev.txt']:  # Try both!
+        data_file = os.path.join(task_path, task_name, fname)
+        if os.path.isfile(data_file):
+            with open(data_file, 'r', encoding='utf-8') as f:
+                return sum(1 for line in f if line.strip())
+    return -1  # If neither file is found
 
 def main():
     parser = argparse.ArgumentParser()
@@ -161,12 +162,13 @@ def main():
     transfer_tasks = ['MR', 'CR', 'SUBJ', 'MPQA', 'SST2', 'TREC', 'MRPC']
     results = {}
     task_times = {}
+    task_path = params_senteval['task_path']
+    task_example_counts = {task: count_task_examples(task_path, task) for task in transfer_tasks}
 
     for task in transfer_tasks:
         print(f"\n→ Starting SentEval task: {task}")
         start = time.time()
-        task_path = params_senteval['task_path']
-        task_example_counts = {task: count_task_examples(task_path, task) for task in transfer_tasks}
+
         try:
             result = se.eval([task])[task]
             results[task] = result
@@ -195,7 +197,8 @@ def main():
 
     accs = [(t, results[t]['acc'], task_example_counts.get(t, -1)) for t in results]
     macro = sum(a for _, a, _ in accs) / len(accs)
-    micro = sum(a * n for _, a, n in accs) / sum(n for _, _, n in accs)
+    valid_accs = [(a, n) for _, a, n in accs if n > 0]
+    micro = sum(a * n for a, n in valid_accs) / sum(n for _, n in valid_accs)
 
     print("\n=== Final Evaluation Summary ===")
     print(f"Model: {args.model_type}")
