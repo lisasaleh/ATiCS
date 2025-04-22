@@ -85,6 +85,13 @@ def evaluate(model, dataloader, device):
 
     return correct / total
 
+def count_task_examples(task_path, task_name):
+    data_file = os.path.join(task_path, task_name, 'test.txt')
+    if not os.path.isfile(data_file):
+        return -1  # Fallback
+    with open(data_file, 'r', encoding='utf-8') as f:
+        return sum(1 for line in f if line.strip())
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_type', type=str, required=True, choices=['baseline', 'lstm', 'bilstm', 'bilstm_max'])
@@ -158,6 +165,8 @@ def main():
     for task in transfer_tasks:
         print(f"\n→ Starting SentEval task: {task}")
         start = time.time()
+        task_path = params_senteval['task_path']
+        task_example_counts = {task: count_task_examples(task_path, task) for task in transfer_tasks}
         try:
             result = se.eval([task])[task]
             results[task] = result
@@ -173,7 +182,7 @@ def main():
                     "model": args.model_type,
                     "task": task,
                     "accuracy": round(result['acc'], 4),
-                    "nexamples": result['nexamples'],
+                    "nexamples": result.get('nexamples', task_example_counts.get(task, -1)),
                     "elapsed_time": round(elapsed, 2)
                 }, f, indent=4)
             print(f"Saved partial result to: {partial_path}")
@@ -184,7 +193,7 @@ def main():
             task_times[task] = -1
 
 
-    accs = [(t, results[t]['acc'], results[t]['nexamples']) for t in results]
+    accs = [(t, results[t]['acc'], task_example_counts.get(t, -1)) for t in results]
     macro = sum(a for _, a, _ in accs) / len(accs)
     micro = sum(a * n for _, a, n in accs) / sum(n for _, _, n in accs)
 
