@@ -97,7 +97,7 @@ def main():
 
     import senteval
     params_senteval = {
-        'task_path': './SentEval/data',
+        'task_path': './SentEval/data/downstream/',
         'usepytorch': True,
         'kfold': 10,
         'batch_size': args.batch_size,
