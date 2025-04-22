@@ -134,7 +134,7 @@ def main():
     params_senteval = {
         'task_path': './SentEval/data',
         'usepytorch': True,
-        'kfold': 10,
+        'kfold': 5,
         'batch_size': args.batch_size,
         'classifier': {
             'nhid': 0,
@@ -163,11 +163,26 @@ def main():
             results[task] = result
             elapsed = time.time() - start
             task_times[task] = elapsed
-            print(f"Finished {task} in {elapsed:.2f} seconds. Accuracy: {result['acc']:.2f}")
+            print(f" Finished {task} in {elapsed:.2f} seconds. Accuracy: {result['acc']:.2f}")
+
+            # Save partial result
+            os.makedirs("results", exist_ok=True)
+            partial_path = f"results/{args.model_type}_partial_{task}.json"
+            with open(partial_path, "w") as f:
+                json.dump({
+                    "model": args.model_type,
+                    "task": task,
+                    "accuracy": round(result['acc'], 4),
+                    "nexamples": result['nexamples'],
+                    "elapsed_time": round(elapsed, 2)
+                }, f, indent=4)
+            print(f"Saved partial result to: {partial_path}")
+
         except Exception as e:
             print(f"Failed on task {task}: {e}")
             results[task] = {'acc': 0.0, 'nexamples': 0}
             task_times[task] = -1
+
 
     accs = [(t, results[t]['acc'], results[t]['nexamples']) for t in results]
     macro = sum(a for _, a, _ in accs) / len(accs)
