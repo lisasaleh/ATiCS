@@ -35,8 +35,6 @@ class SentEvalWrapper:
         from nltk.tokenize import TreebankWordTokenizer
         tokenizer = TreebankWordTokenizer()
 
-        print(f"[batcher] Got batch of {len(batch)} samples", flush=True)
-
         vecs = []
         lengths = []
 
@@ -56,10 +54,6 @@ class SentEvalWrapper:
             ids = [self.vocab.get(w, self.unk_id) for w in tokens[:self.max_len]]
             ids += [self.pad_id] * (self.max_len - len(ids))
             vecs.append(ids)
-
-            if i == 0:
-                print(f"[batcher] First sentence: {' '.join(tokens)}", flush=True)
-                print(f"[batcher] Token IDs: {ids}", flush=True)
 
         input_tensor = torch.tensor(vecs).to(self.device)
         lengths_tensor = torch.tensor(lengths).to(self.device)
