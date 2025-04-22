@@ -1,6 +1,6 @@
 # ATiCS: Sentence Representations from Natural Language Inference
 
-This repository implements several sentence encoders—**Baseline**, **LSTM**, **BiLSTM**, and **BiLSTM-Max**—trained on the **SNLI** (Stanford Natural Language Inference) dataset. The models are evaluated both on the SNLI classification task and on a diverse set of transfer tasks using **SentEval** (Conneau & Kiela, 2018), following the framework introduced by Conneau et al. (2017).
+This repository implements several sentence encoders, **Baseline**, **LSTM**, **BiLSTM**, and **BiLSTM-Max**, trained on the **SNLI** (Stanford Natural Language Inference) dataset. The models are evaluated both on the SNLI classification task and on a diverse set of transfer tasks using **SentEval** (Conneau & Kiela, 2018), following the framework introduced by Conneau et al. (2017).
 
 
 ## Setup
