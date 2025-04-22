@@ -1,13 +1,13 @@
 import argparse
 import torch
 import pickle
+import os
+import json
+from datetime import datetime
 from torch.utils.data import DataLoader
 from datasets import load_dataset
-import os
-from datetime import datetime
-import json
 
-from utils.dataset import SNLIDataset, build_vocab, load_glove_embeddings
+from utils.dataset import SNLIDataset, load_glove_embeddings
 from models import get_model
 
 class SentEvalWrapper:
@@ -18,47 +18,56 @@ class SentEvalWrapper:
         self.max_len = 50
         self.model_type = type(model).__name__
 
+        # Safe defaults
+        self.pad_id = self.vocab.get("<pad>", 0)
+        self.unk_id = self.vocab.get("<unk>", 0)
+
+        # Assert critical vocab keys exist
+        assert "<pad>" in self.vocab, "Missing <pad> in vocab"
+        assert "<unk>" in self.vocab, "Missing <unk> in vocab"
+
     def prepare(self, params, samples):
         return
-        
+
     def batcher(self, params, batch):
         from nltk.tokenize import TreebankWordTokenizer
         tokenizer = TreebankWordTokenizer()
 
         vecs = []
         lengths = []
-        
+
         for sent in batch:
-            # Process tokens based on input type
             if isinstance(sent, list):
                 tokens = [token.lower() for token in sent]
             else:
-                tokens = tokenizer.tokenize(sent.lower())
-        
-            # Calculate length once
+                sent = sent.strip()
+                tokens = tokenizer.tokenize(sent.lower()) if sent else []
+
+            if len(tokens) == 0:
+                tokens = ["<pad>"]
+
             length = min(len(tokens), self.max_len)
             lengths.append(length)
-        
-            # Create ids
-            ids = [self.vocab.get(w, self.vocab["<unk>"]) for w in tokens[:self.max_len]]
-            ids += [self.vocab["<pad>"]] * (self.max_len - len(ids))
+
+            ids = [self.vocab.get(w, self.unk_id) for w in tokens[:self.max_len]]
+            ids += [self.pad_id] * (self.max_len - len(ids))
             vecs.append(ids)
+
+        if len(vecs) == 0:
+            raise ValueError("Batcher received empty batch")
 
         input_tensor = torch.tensor(vecs).to(self.device)
         lengths_tensor = torch.tensor(lengths).to(self.device)
 
         with torch.no_grad():
             if hasattr(self.model, 'encode_sentence'):
-                # Use encode_sentence if available
                 reps = self.model.encode_sentence(input_tensor, lengths_tensor)
             elif hasattr(self.model, 'average_embeddings'):
-                # Use average_embeddings for baseline
                 reps = self.model.average_embeddings(input_tensor)
             else:
                 raise AttributeError(f"Model {self.model_type} doesn't have a sentence encoding method")
-                
-        return reps.cpu().numpy()
 
+        return reps.cpu().numpy()
 
 def evaluate(model, dataloader, device):
     model.eval()
@@ -119,7 +128,6 @@ def main():
     print(f"Test Accuracy: {test_acc:.4f}")
 
     print("Running SentEval transfer tasks...")
-
     import senteval
     params_senteval = {
         'task_path': './SentEval/data',
@@ -138,6 +146,7 @@ def main():
 
     se_model = SentEvalWrapper(model, vocab, args.device)
     se = senteval.engine.SE(params_senteval, se_model.batcher, se_model.prepare)
+
     transfer_tasks = ['MR', 'CR', 'SUBJ', 'MPQA', 'SST2', 'TREC', 'MRPC']
     results = se.eval(transfer_tasks)
 
@@ -152,14 +161,10 @@ def main():
     print(f"SentEval macro    : {macro:.2f}")
     print(f"SentEval micro    : {micro:.2f}")
 
-    # Create results directory if needed
     os.makedirs("results", exist_ok=True)
-
-    # Pick a filename based on model and timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     results_file = f"results/{args.model_type}_eval_{timestamp}.json"
 
-    # Save results
     with open(results_file, "w") as f:
         json.dump({
             "model": args.model_type,
@@ -170,7 +175,7 @@ def main():
             "task_accuracies": {t: round(results[t]['acc'], 4) for t in results}
         }, f, indent=4)
 
-    print(f"\n✅ Results saved to: {results_file}")
+    print(f"\n Results saved to: {results_file}")
 
 if __name__ == "__main__":
     main()
