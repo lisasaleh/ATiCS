@@ -3,6 +3,9 @@ import torch
 import pickle
 from torch.utils.data import DataLoader
 from datasets import load_dataset
+import os
+from datetime import datetime
+import json
 
 from utils.dataset import SNLIDataset, build_vocab, load_glove_embeddings
 from models import get_model
@@ -129,6 +132,7 @@ def main():
             'batch_size': args.batch_size,
             'tenacity': 5,
             'epoch_size': 4,
+            'device': args.device
         }
     }
 
@@ -147,6 +151,26 @@ def main():
     print(f"SNLI test accuracy: {test_acc:.2f}")
     print(f"SentEval macro    : {macro:.2f}")
     print(f"SentEval micro    : {micro:.2f}")
+
+    # Create results directory if needed
+    os.makedirs("results", exist_ok=True)
+
+    # Pick a filename based on model and timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    results_file = f"results/{args.model_type}_eval_{timestamp}.json"
+
+    # Save results
+    with open(results_file, "w") as f:
+        json.dump({
+            "model": args.model_type,
+            "SNLI_dev_accuracy": round(dev_acc, 4),
+            "SNLI_test_accuracy": round(test_acc, 4),
+            "SentEval_macro": round(macro, 4),
+            "SentEval_micro": round(micro, 4),
+            "task_accuracies": {t: round(results[t]['acc'], 4) for t in results}
+        }, f, indent=4)
+
+    print(f"\n✅ Results saved to: {results_file}")
 
 if __name__ == "__main__":
     main()
