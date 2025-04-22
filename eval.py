@@ -8,15 +8,16 @@ from utils.dataset import SNLIDataset, build_vocab, load_glove_embeddings
 from models import get_model
 
 class SentEvalWrapper:
-    def __init__(self, encoder, vocab, device):
-        self.encoder = encoder
+    def __init__(self, model, vocab, device):
+        self.model = model
         self.vocab = vocab
         self.device = device
         self.max_len = 50
+        self.model_type = type(model).__name__
 
     def prepare(self, params, samples):
         return
-    
+        
     def batcher(self, params, batch):
         from nltk.tokenize import TreebankWordTokenizer
         tokenizer = TreebankWordTokenizer()
@@ -30,11 +31,11 @@ class SentEvalWrapper:
                 tokens = [token.lower() for token in sent]
             else:
                 tokens = tokenizer.tokenize(sent.lower())
-            
+        
             # Calculate length once
             length = min(len(tokens), self.max_len)
             lengths.append(length)
-            
+        
             # Create ids
             ids = [self.vocab.get(w, self.vocab["<unk>"]) for w in tokens[:self.max_len]]
             ids += [self.vocab["<pad>"]] * (self.max_len - len(ids))
@@ -44,7 +45,15 @@ class SentEvalWrapper:
         lengths_tensor = torch.tensor(lengths).to(self.device)
 
         with torch.no_grad():
-            reps = self.encoder.encode_sentence(input_tensor, lengths_tensor)
+            if hasattr(self.model, 'encode_sentence'):
+                # Use encode_sentence if available
+                reps = self.model.encode_sentence(input_tensor, lengths_tensor)
+            elif hasattr(self.model, 'average_embeddings'):
+                # Use average_embeddings for baseline
+                reps = self.model.average_embeddings(input_tensor)
+            else:
+                raise AttributeError(f"Model {self.model_type} doesn't have a sentence encoding method")
+                
         return reps.cpu().numpy()
 
 
