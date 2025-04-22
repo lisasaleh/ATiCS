@@ -123,12 +123,14 @@ def main():
         'usepytorch': True,
         'kfold': 10,
         'batch_size': args.batch_size,
+        'cuda': torch.cuda.is_available(),  # Explicitly set to False if CUDA is not available
         'classifier': {
             'nhid': 0,
             'optim': 'adam',
             'batch_size': args.batch_size,
             'tenacity': 5,
-            'epoch_size': 4
+            'epoch_size': 4,
+            'cudaEfficient': True  # This will make the classifier use cuda only when available
         }
     }
 
