@@ -16,24 +16,35 @@ class SentEvalWrapper:
 
     def prepare(self, params, samples):
         return
-
+    
     def batcher(self, params, batch):
-        # Tokenize, pad, convert to ids
         from nltk.tokenize import TreebankWordTokenizer
         tokenizer = TreebankWordTokenizer()
 
         vecs = []
+        lengths = []
+        
         for sent in batch:
-            tokens = tokenizer.tokenize(sent.lower())
+            # Process tokens based on input type
+            if isinstance(sent, list):
+                tokens = [token.lower() for token in sent]
+            else:
+                tokens = tokenizer.tokenize(sent.lower())
+            
+            # Calculate length once
+            length = min(len(tokens), self.max_len)
+            lengths.append(length)
+            
+            # Create ids
             ids = [self.vocab.get(w, self.vocab["<unk>"]) for w in tokens[:self.max_len]]
             ids += [self.vocab["<pad>"]] * (self.max_len - len(ids))
             vecs.append(ids)
 
         input_tensor = torch.tensor(vecs).to(self.device)
-        lengths = torch.tensor([min(len(tokenizer.tokenize(s)), self.max_len) for s in batch]).to(self.device)
+        lengths_tensor = torch.tensor(lengths).to(self.device)
 
         with torch.no_grad():
-            reps = self.encoder.encode_sentence(input_tensor, lengths)
+            reps = self.encoder.encode_sentence(input_tensor, lengths_tensor)
         return reps.cpu().numpy()
 
 
