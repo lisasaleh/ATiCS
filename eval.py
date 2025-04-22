@@ -35,10 +35,12 @@ class SentEvalWrapper:
         from nltk.tokenize import TreebankWordTokenizer
         tokenizer = TreebankWordTokenizer()
 
+        print(f"[batcher] Got batch of {len(batch)} samples", flush=True)
+
         vecs = []
         lengths = []
 
-        for sent in batch:
+        for i, sent in enumerate(batch):
             if isinstance(sent, list):
                 tokens = [token.lower() for token in sent]
             else:
@@ -55,8 +57,9 @@ class SentEvalWrapper:
             ids += [self.pad_id] * (self.max_len - len(ids))
             vecs.append(ids)
 
-        if len(vecs) == 0:
-            raise ValueError("Batcher received empty batch")
+            if i == 0:
+                print(f"[batcher] First sentence: {' '.join(tokens)}", flush=True)
+                print(f"[batcher] Token IDs: {ids}", flush=True)
 
         input_tensor = torch.tensor(vecs).to(self.device)
         lengths_tensor = torch.tensor(lengths).to(self.device)
@@ -70,6 +73,7 @@ class SentEvalWrapper:
                 raise AttributeError(f"Model {self.model_type} doesn't have a sentence encoding method")
 
         return reps.cpu().numpy()
+
 
 def evaluate(model, dataloader, device):
     model.eval()
