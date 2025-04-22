@@ -9,6 +9,8 @@ from datasets import load_dataset
 
 from utils.dataset import SNLIDataset, load_glove_embeddings
 from models import get_model
+import functools
+print = functools.partial(print, flush=True)
 
 class SentEvalWrapper:
     def __init__(self, model, vocab, device):
