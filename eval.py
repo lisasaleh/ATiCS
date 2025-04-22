@@ -131,6 +131,8 @@ def main():
 
     print("Running SentEval transfer tasks...")
     import senteval
+    import time
+
     params_senteval = {
         'task_path': './SentEval/data',
         'usepytorch': True,
@@ -146,11 +148,28 @@ def main():
         }
     }
 
+    print("Making wrapper and SE")
     se_model = SentEvalWrapper(model, vocab, args.device)
     se = senteval.engine.SE(params_senteval, se_model.batcher, se_model.prepare)
+    print("Wrapper and SE done")
 
     transfer_tasks = ['MR', 'CR', 'SUBJ', 'MPQA', 'SST2', 'TREC', 'MRPC']
-    results = se.eval(transfer_tasks)
+    results = {}
+    task_times = {}
+
+    for task in transfer_tasks:
+        print(f"\n→ Starting SentEval task: {task}")
+        start = time.time()
+        try:
+            result = se.eval([task])[task]
+            results[task] = result
+            elapsed = time.time() - start
+            task_times[task] = elapsed
+            print(f"Finished {task} in {elapsed:.2f} seconds. Accuracy: {result['acc']:.2f}")
+        except Exception as e:
+            print(f"Failed on task {task}: {e}")
+            results[task] = {'acc': 0.0, 'nexamples': 0}
+            task_times[task] = -1
 
     accs = [(t, results[t]['acc'], results[t]['nexamples']) for t in results]
     macro = sum(a for _, a, _ in accs) / len(accs)
@@ -174,10 +193,11 @@ def main():
             "SNLI_test_accuracy": round(test_acc, 4),
             "SentEval_macro": round(macro, 4),
             "SentEval_micro": round(micro, 4),
-            "task_accuracies": {t: round(results[t]['acc'], 4) for t in results}
+            "task_accuracies": {t: round(results[t]['acc'], 4) for t in results},
+            "task_times": {t: round(task_times[t], 2) for t in task_times}
         }, f, indent=4)
 
-    print(f"\n Results saved to: {results_file}")
+    print(f"\n✓ Results saved to: {results_file}")
 
 if __name__ == "__main__":
     main()
